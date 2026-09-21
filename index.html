@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login Nama Guru - Pass 123</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div id="loginPage" class="flex items-center justify-center min-h-screen p-4">
+  <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm">
+    <h1 class="text-2xl font-bold text-center">LOGIN GURU</h1>
+    <p class="text-center text-sm text-gray-500 mb-6">Username = Nama Guru | Pass = 123</p>
+    <input id="user" placeholder="Nama Guru, contoh: Pak Budi" class="w-full border p-3 rounded-xl mb-3">
+    <input id="pass" type="password" placeholder="Password" class="w-full border p-3 rounded-xl mb-4">
+    <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Masuk</button>
+    <p class="text-xs text-center mt-3 text-gray-400">Pass semua guru = 123</p>
+    <div id="info" class="mt-4 text-xs bg-gray-50 p-3 rounded-xl">
+      <b>Contoh:</b><br>
+      Username: Bu Sari<br>
+      Password: 123
+    </div>
+  </div>
+</div>
+
+<div id="appPage" class="hidden">
+  <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+    <b id="welcome"></b>
+    <button onclick="location.reload()" class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-bold">Logout</button>
+  </div>
+  <div class="p-4 max-w-7xl mx-auto">
+    <div class="bg-white p-4 rounded-xl shadow mb-4">
+      <div class="flex flex-wrap gap-2" id="kelasList"></div>
+    </div>
+    <div id="panel" class="hidden">
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <div class="bg-white p-4 rounded-xl shadow">
+          <b>Tambah Siswa</b>
+          <div class="flex gap-2 mt-2"><input id="namaSiswa" placeholder="Nama siswa" class="border p-2 rounded flex-1"><button onclick="tambahSiswa()" class="bg-blue-600 text-white px-4 rounded">+ Siswa</button></div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow">
+          <b>Mapel (Guru Tentukan)</b>
+          <div class="flex gap-2 mt-2"><input id="namaMapel" placeholder="Nama mapel" class="border p-2 rounded flex-1"><button onclick="tambahMapel()" class="bg-purple-600 text-white px-4 rounded">+ Mapel</button></div>
+          <div id="listMapel" class="flex flex-wrap gap-2 mt-3"></div>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow overflow-x-auto">
+        <h2 id="judul" class="font-bold mb-3"></h2>
+        <table class="w-full text-sm"><thead id="thead" class="bg-gray-100"></thead><tbody id="tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let db = JSON.parse(localStorage.getItem('db_pass123') || '{"kelas":["11 TKJ 3","11 TKJ 4","10 TKJ 2","12 TKJ 4 MATPIL"],"data":{}}');
+let aktif=null, guruLogin=null;
+function save(){localStorage.setItem('db_pass123',JSON.stringify(db))}
+function login(){
+  let u=document.getElementById('user').value.trim();
+  let p=document.getElementById('pass').value.trim();
+  if(!u) return alert('Isi Nama Guru!');
+  if(p!=='123') return alert('Password salah! Password semua guru = 123');
+  guruLogin=u;
+  loginPage.classList.add('hidden'); appPage.classList.remove('hidden');
+  welcome.innerText='Halo, '+guruLogin+' 👋 (Pass: 123)';
+  renderKelas();
+}
+function renderKelas(){kelasList.innerHTML=db.kelas.map(k=>`<button onclick="pilih('${k}')" class="px-4 py-2 rounded-full border ${aktif==k?'bg-blue-600 text-white':''}">${k}</button>`).join('')}
+function pilih(k){aktif=k;if(!db.data[k])db.data[k]={siswa:[],mapel:[]};panel.classList.remove('hidden');renderKelas();render()}
+function tambahSiswa(){let n=namaSiswa.value.trim();if(!n||!aktif)return;db.data[aktif].siswa.push({nama:n,nilai:{},oleh:guruLogin});save();render();namaSiswa.value=''}
+function tambahMapel(){let m=namaMapel.value.trim();if(!m||!aktif)return;if(db.data[aktif].mapel.includes(m))return alert('Sudah ada');db.data[aktif].mapel.push(m);save();render();namaMapel.value=''}
+function hapusMapel(m){if(confirm('Hapus '+m+'?')){db.data[aktif].mapel=db.data[aktif].mapel.filter(x=>x!=m);db.data[aktif].siswa.forEach(s=>delete s.nilai[m]);save();render()}}
+function edit(i,m,v){db.data[aktif].siswa[i].nilai[m]=v;save()}
+function render(){
+  judul.innerText=aktif+' - Input oleh: '+guruLogin;
+  listMapel.innerHTML=db.data[aktif].mapel.map(m=>`<span onclick="hapusMapel('${m}')" class="bg-purple-100 px-3 py-1 rounded-full text-xs cursor-pointer">${m} ✕</span>`).join('')||'<span class="text-xs text-gray-400">Belum ada mapel</span>';
+  thead.innerHTML=`<tr><th class="p-2 border">No</th><th class="p-2 border text-left">Nama</th>${db.data[aktif].mapel.map(m=>`<th class="p-2 border">${m}</th>`).join('')}<th class="p-2 border">Aksi</th></tr>`;
+  tbody.innerHTML=db.data[aktif].siswa.map((s,i)=>`<tr><td class="p-2 border text-center">${i+1}</td><td class="p-2 border">${s.nama}</td>${db.data[aktif].mapel.map(m=>`<td class="p-1 border"><input type="number" value="${s.nilai[m]||''}" onchange="edit(${i},'${m}',this.value)" class="w-full p-2 border rounded text-center"></td>`).join('')}<td class="p-2 border text-center"><button onclick="db.data[aktif].siswa.splice(${i},1);save();render()" class="text-red-500">Hapus</button></td></tr>`).join('');
+}
+db.kelas.forEach(k=>{if(!db.data[k])db.data[k]={siswa:[],mapel:[]}});save();
+</script>
+</body>
+</html>
